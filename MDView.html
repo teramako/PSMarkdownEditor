@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>MDView</title>
+<link rel="stylesheet" href="github-markdown.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.12.0/styles/default.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.12.0/highlight.min.js"></script>
+<script>
+function updateContent(html) {
+    document.getElementById('content').innerHTML = html;
+    hljs.highlightAll();
+}
+function setBaseUrl(fileUrl) { document.getElementById("base")?.setAttribute("href", fileUrl); }
+</script>
+<base id="base" href="">
+</head>
+<body>
+<article id="content" class="markdown-body"></article>
+</body>
+</html>
