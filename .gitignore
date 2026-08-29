@@ -1,0 +1,4 @@
+*.nupkg
+*.lnk
+libs/
+webview2_userdata/
