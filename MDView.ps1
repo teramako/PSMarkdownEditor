@@ -4,13 +4,22 @@ using namespace Microsoft.Web.WebView2.Core;
 using namespace Microsoft.Web.WebView2.WinForms;
 param(
     [Parameter(Position = 0)]
-    [string] $File
+    [string] $File,
+    [Parameter()]
+    [switch] $Preview
 )
 $ErrorActionPreference = 'Stop';
 Add-Type -AssemblyName System.Windows.Forms;
 Add-Type -AssemblyName System.Drawing;
 Add-Type -Path $PSScriptRoot\libs\Microsoft.Web.WebView2.Core.dll
 Add-Type -Path $PSScriptRoot\libs\Microsoft.Web.WebView2.WinForms.dll
+
+@(
+    '--------------------'
+    'File: {0}' -f $File
+    'Preview: {0}' -f $Preview
+    '--------------------'
+) | Write-Host
 
 $form = New-Object Form -Property @{
     Text = "MDView";
@@ -69,12 +78,14 @@ $fontMenu.Add_Click({
     }
 })
 $splitViewMenu = New-Object ToolStripMenuItem -Property @{ Text = '&SplitView'; ShortcutKeys = [Keys]::Control -bor [Keys]::D1; }
-$showOnlyEditorMenu = New-Object ToolStripMenuItem -Property @{ Text = 'Show &Editor Only'; ShortcutKeys = [Keys]::Control -bor [Keys]::D2; }
 $splitViewMenu.Add_Click({ SwitchViewMode 'SplitView' })
-$showOnlyBrowserMenu = New-Object ToolStripMenuItem -Property @{ Text = 'Show &Browser Only'; ShortcutKeys = [Keys]::Control -bor [Keys]::D3; }
+$showOnlyEditorMenu = New-Object ToolStripMenuItem -Property @{ Text = 'Show &Editor Only'; ShortcutKeys = [Keys]::Control -bor [Keys]::D2; }
 $showOnlyEditorMenu.Add_Click({ SwitchViewMode 'Editor' })
-$viewToolStripMenu.DropDownItems.AddRange(@($splitViewMenu, $showOnlyEditorMenu, $showOnlyBrowserMenu, [ToolStripSeparator]::new(), $fontMenu))
+$showOnlyBrowserMenu = New-Object ToolStripMenuItem -Property @{ Text = 'Show &Browser Only'; ShortcutKeys = [Keys]::Control -bor [Keys]::D3; }
 $showOnlyBrowserMenu.Add_Click({ SwitchViewMode 'Browser' })
+$previewMenu = New-Object ToolStripMenuItem -Property @{ Text = '&Preview'; ShortcutKeys = [Keys]::Control -bor [Keys]::D4; }
+$previewMenu.Add_Click({ SwitchViewMode 'Preview' })
+$viewToolStripMenu.DropDownItems.AddRange(@($splitViewMenu, $showOnlyEditorMenu, $showOnlyBrowserMenu, $previewMenu, [ToolStripSeparator]::new(), $fontMenu))
 $menuStrip.Items.AddRange(@($fileToolStripMenu, $viewToolStripMenu))
 
 $mainPanel = New-Object Panel -Property @{ Dock = [DockStyle]::Fill; Padding = [Padding]::new(3) }
@@ -96,6 +107,22 @@ $titleTextBox = New-Object TextBox -Property @{
 $titlePanel.Controls.Add($titleTextBox)
 $titlePanel.Controls.Add($titleLabel);
 
+$fsWatcher = $null
+function WatchFile {
+    if (-not [IO.File]::Exists($File)) { return }
+    if (-not $fsWatcher) {
+        $fsWatcher = [IO.FileSystemWatcher]::new([IO.Path]::GetDirectoryName($File), [IO.Path]::GetFileName($File))
+        $fsWatcher.NotifyFilter = [IO.NotifyFilters]::LastWrite;
+        $fsWatcher.IncludeSubdirectories = $false;
+        $fsWatcher.SynchronizingObject = $form;
+        $fsWatcher.EnableRaisingEvents = $true;
+        $fsWatcher.Add_Changed({
+            $updateTimer.Stop();
+            $updateTimer.Start();
+        })
+    }
+    Write-Host ('Watching: Directory = {0}, Filter = {1}' -f $fsWatcher.Path, $fsWatcher.Filter)
+}
 enum ViewMode { SplitView = 1; Editor = 2; Browser = 3; }
 function SwitchViewMode([ViewMode] $Mode) {
     switch ($Mode) {
@@ -106,6 +133,7 @@ function SwitchViewMode([ViewMode] $Mode) {
             $splitViewMenu.Checked = $true;
             $showOnlyEditorMenu.Checked = $false;
             $showOnlyBrowserMenu.Checked = $false;
+            $previewMenu.Checked = $false
         }
         'Editor' {
             if ($showOnlyEditorMenu.Checked) { return }
@@ -114,6 +142,7 @@ function SwitchViewMode([ViewMode] $Mode) {
             $splitViewMenu.Checked = $false;
             $showOnlyEditorMenu.Checked = $true;
             $showOnlyBrowserMenu.Checked = $false;
+            $previewMenu.Checked = $false
         }
         'Browser' {
             if ($showOnlyBrowserMenu.Checked) { return }
@@ -122,6 +151,15 @@ function SwitchViewMode([ViewMode] $Mode) {
             $splitViewMenu.Checked = $false;
             $showOnlyEditorMenu.Checked = $false;
             $showOnlyBrowserMenu.Checked = $true;
+            $previewMenu.Checked = $false
+        }
+    }
+    if ($Preview -and [IO.File]::Exists($File)) {
+        WatchFile
+    } else {
+        if ($fsWatcher) {
+            $fsWatcher.Dispose()
+            $fsWatcher= $null
         }
     }
 }
@@ -133,6 +171,10 @@ $markdownTextBox = New-Object TextBox -Property @{
     WordWrap = $true;
     AllowDrop = $true;
 }
+$markdownTextBox.Add_TextChanged({
+    $updateTimer.Stop();
+    $updateTimer.Start();
+})
 $markdownTextBox.Add_DragEnter({ param([object] $s, [DragEventArgs] $e)
     if ($null -eq $e.Data) {
         $e.Effect = [DragDropEffects]::None
@@ -163,6 +205,16 @@ $markdownTextBox.Add_DragDrop({ param([object] $s, [DragEventArgs] $e)
 })
 $webView = New-Object WebView2 -Property @{ Dock = [DockStyle]::Fill; }
 
+$updateTimer = New-Object Timer -Property @{ Interval = 500 }
+$updateTimer.Add_Tick({
+    $updateTimer.Stop();
+    if ($Preview -and $File) {
+        OpenMarkdownFile $File
+    } else {
+        UpdateView
+    }
+})
+
 $form.Add_Load({
     $opts = [CoreWebView2EnvironmentOptions]::new("--allow-file-access-from-files")
     $webViewEnv = [CoreWebView2Environment]::CreateAsync($null, "$PSScriptRoot\webview2_userdata", $opts).Result
@@ -173,6 +225,12 @@ $form.Add_Load({
                 param([WebView2] $s, [CoreWebView2NavigationCompletedEventArgs] $e)
                 if ($e.IsSuccess) {
                     OpenMarkdownFile $File
+
+                    if ($Preview) {
+                        SwitchViewMode 'Preview'
+                    } else {
+                        SwitchViewMode 'SplitView'
+                    }
                 }
             })
             $pageUrl = [uri]::new((Join-Path -Path $PSScriptRoot -ChildPath MDView.html))
@@ -184,8 +242,6 @@ $form.Add_Load({
     })
     $null = $webView.EnsureCoreWebView2Async($webViewEnv)
 })
-$markdownTextBox.Add_TextChanged({ UpdateView; })
-# $webView = New-Object WebBrowser -Property @{ Dock = [DockStyle]::Fill; Url = $pageUrl; }
 
 $splitContainer = New-Object SplitContainer -Property @{ Dock = [DockStyle]::Fill; }
 $splitContainer.SuspendLayout()
