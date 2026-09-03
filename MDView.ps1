@@ -68,32 +68,13 @@ $fontMenu.Add_Click({
         $markdownTextBox.Font = $fontDialog.Font;
     }
 })
-$splitViewMenu = New-Object ToolStripMenuItem -Property @{ Text = '&SplitView'; ShortcutKeys = [Keys]::Control -bor [Keys]::D1; Checked = $true; }
-$splitViewMenu.Add_Click({
-    $splitContainer.Panel1Collapsed = $false;
-    $splitContainer.Panel2Collapsed = $false;
-    $splitViewMenu.Checked = $true;
-    $showOnlyEditorMenu.Checked = $false;
-    $showOnlyBrowserMenu.Checked = $false;
-})
+$splitViewMenu = New-Object ToolStripMenuItem -Property @{ Text = '&SplitView'; ShortcutKeys = [Keys]::Control -bor [Keys]::D1; }
 $showOnlyEditorMenu = New-Object ToolStripMenuItem -Property @{ Text = 'Show &Editor Only'; ShortcutKeys = [Keys]::Control -bor [Keys]::D2; }
-$showOnlyEditorMenu.Add_Click({
-    $splitContainer.Panel1Collapsed = $false;
-    $splitContainer.Panel2Collapsed = $true;
-    $splitViewMenu.Checked = $false;
-    $showOnlyEditorMenu.Checked = $true;
-    $showOnlyBrowserMenu.Checked = $false;
-})
+$splitViewMenu.Add_Click({ SwitchViewMode 'SplitView' })
 $showOnlyBrowserMenu = New-Object ToolStripMenuItem -Property @{ Text = 'Show &Browser Only'; ShortcutKeys = [Keys]::Control -bor [Keys]::D3; }
-$showOnlyBrowserMenu.Add_Click({
-    $splitContainer.Panel1Collapsed = $true;
-    $splitContainer.Panel2Collapsed = $false;
-    $splitViewMenu.Checked = $false;
-    $showOnlyEditorMenu.Checked = $false;
-    $showOnlyBrowserMenu.Checked = $true;
-})
+$showOnlyEditorMenu.Add_Click({ SwitchViewMode 'Editor' })
 $viewToolStripMenu.DropDownItems.AddRange(@($splitViewMenu, $showOnlyEditorMenu, $showOnlyBrowserMenu, [ToolStripSeparator]::new(), $fontMenu))
-
+$showOnlyBrowserMenu.Add_Click({ SwitchViewMode 'Browser' })
 $menuStrip.Items.AddRange(@($fileToolStripMenu, $viewToolStripMenu))
 
 $mainPanel = New-Object Panel -Property @{ Dock = [DockStyle]::Fill; Padding = [Padding]::new(3) }
@@ -114,6 +95,37 @@ $titleTextBox = New-Object TextBox -Property @{
 }
 $titlePanel.Controls.Add($titleTextBox)
 $titlePanel.Controls.Add($titleLabel);
+
+enum ViewMode { SplitView = 1; Editor = 2; Browser = 3; }
+function SwitchViewMode([ViewMode] $Mode) {
+    switch ($Mode) {
+        'SplitView' {
+            if ($splitViewMenu.Checked) { return }
+            $splitContainer.Panel1Collapsed = $false;
+            $splitContainer.Panel2Collapsed = $false;
+            $splitViewMenu.Checked = $true;
+            $showOnlyEditorMenu.Checked = $false;
+            $showOnlyBrowserMenu.Checked = $false;
+        }
+        'Editor' {
+            if ($showOnlyEditorMenu.Checked) { return }
+            $splitContainer.Panel1Collapsed = $false;
+            $splitContainer.Panel2Collapsed = $true;
+            $splitViewMenu.Checked = $false;
+            $showOnlyEditorMenu.Checked = $true;
+            $showOnlyBrowserMenu.Checked = $false;
+        }
+        'Browser' {
+            if ($showOnlyBrowserMenu.Checked) { return }
+            $splitContainer.Panel1Collapsed = $true;
+            $splitContainer.Panel2Collapsed = $false;
+            $splitViewMenu.Checked = $false;
+            $showOnlyEditorMenu.Checked = $false;
+            $showOnlyBrowserMenu.Checked = $true;
+        }
+    }
+}
+
 $markdownTextBox = New-Object TextBox -Property @{
     Dock = [DockStyle]::Fill;
     Multiline = $true;
