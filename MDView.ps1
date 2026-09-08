@@ -43,8 +43,8 @@ $openMenu.Add_Click({
 })
 $saveMenu = New-Object ToolStripMenuItem -Property @{ Text = "&Save"; ShortcutKeys = [Keys]::Control -bor [Keys]::S; }
 $saveMenu.Add_Click({
-    if (-not [string]::IsNullOrEmpty($File) -and [IO.File]::Exists($File)) {
-        [IO.File]::WriteAllText($File, $markdownTextBox.Text, [Text.Encoding]::UTF8);
+    if (-not [string]::IsNullOrEmpty($Script:File) -and [IO.File]::Exists($Script:File)) {
+        [IO.File]::WriteAllText($Script:File, $markdownTextBox.Text, [Text.Encoding]::UTF8);
         return;
     }
 
@@ -56,9 +56,9 @@ $saveMenu.Add_Click({
         $saveDialog.FileName = $titleTextBox.Text + ".md";
     }
     if ($saveDialog.ShowDialog($form) -eq [DialogResult]::OK) {
-        $File = $saveDialog.FileName
-        $title = [IO.Path]::GetFileNameWithoutExtension($File);
-        [IO.File]::WriteAllText($File, $markdownTextBox.Text, [Text.Encoding]::UTF8);
+        $Script:File = $saveDialog.FileName
+        $title = [IO.Path]::GetFileNameWithoutExtension($Script:File);
+        [IO.File]::WriteAllText($Script:File, $markdownTextBox.Text, [Text.Encoding]::UTF8);
         $titleTextBox.Text = $title
     }
 })
@@ -107,21 +107,21 @@ $titleTextBox = New-Object TextBox -Property @{
 $titlePanel.Controls.Add($titleTextBox)
 $titlePanel.Controls.Add($titleLabel);
 
-$fsWatcher = $null
+$Script:fsWatcher = $null
 function WatchFile {
-    if (-not [IO.File]::Exists($File)) { return }
+    if (-not [IO.File]::Exists($Script:File)) { return }
     if (-not $fsWatcher) {
-        $fsWatcher = [IO.FileSystemWatcher]::new([IO.Path]::GetDirectoryName($File), [IO.Path]::GetFileName($File))
-        $fsWatcher.NotifyFilter = [IO.NotifyFilters]::LastWrite;
-        $fsWatcher.IncludeSubdirectories = $false;
-        $fsWatcher.SynchronizingObject = $form;
-        $fsWatcher.EnableRaisingEvents = $true;
-        $fsWatcher.Add_Changed({
+        $Script:fsWatcher = [IO.FileSystemWatcher]::new([IO.Path]::GetDirectoryName($Script:File), [IO.Path]::GetFileName($Script:File))
+        $Script:fsWatcher.NotifyFilter = [IO.NotifyFilters]::LastWrite;
+        $Script:fsWatcher.IncludeSubdirectories = $false;
+        $Script:fsWatcher.SynchronizingObject = $form;
+        $Script:fsWatcher.EnableRaisingEvents = $true;
+        $Script:fsWatcher.Add_Changed({
             $updateTimer.Stop();
             $updateTimer.Start();
         })
     }
-    Write-Host ('Watching: Directory = {0}, Filter = {1}' -f $fsWatcher.Path, $fsWatcher.Filter)
+    Write-Host ('Watching: Directory = {0}, Filter = {1}' -f $Script:fsWatcher.Path, $Script:fsWatcher.Filter)
 }
 enum ViewMode { SplitView = 1; Editor = 2; Browser = 3; }
 function SwitchViewMode([ViewMode] $Mode) {
@@ -208,8 +208,8 @@ $webView = New-Object WebView2 -Property @{ Dock = [DockStyle]::Fill; }
 $updateTimer = New-Object Timer -Property @{ Interval = 500 }
 $updateTimer.Add_Tick({
     $updateTimer.Stop();
-    if ($Preview -and $File) {
-        OpenMarkdownFile $File
+    if ($Script:Preview -and $Script:File) {
+        OpenMarkdownFile $Script:File
     } else {
         UpdateView
     }
@@ -224,9 +224,9 @@ $form.Add_Load({
             $webView.Add_NavigationCompleted({
                 param([WebView2] $s, [CoreWebView2NavigationCompletedEventArgs] $e)
                 if ($e.IsSuccess) {
-                    OpenMarkdownFile $File
+                    OpenMarkdownFile $Script:File
 
-                    if ($Preview) {
+                    if ($Script:Preview) {
                         SwitchViewMode 'Preview'
                     } else {
                         SwitchViewMode 'SplitView'
@@ -269,11 +269,11 @@ $form.PerformLayout();
 
 function OpenMarkdownFile([string] $markdownFile) {
     if (-not [IO.File]::Exists($markdownFile)) { return }
-    $File = $markdownFile
-    $titleTextBox.Text = [IO.Path]::GetFileNameWithoutExtension($File);
-    $markdownTextBox.Lines = [IO.File]::ReadLines($File, [Text.Encoding]::UTF8);
+    $Script:File = $markdownFile
+    $titleTextBox.Text = [IO.Path]::GetFileNameWithoutExtension($Script:File);
+    $markdownTextBox.Lines = [IO.File]::ReadLines($Script:File, [Text.Encoding]::UTF8);
     UpdateView ([Uri]::new($markdownFile).AbsoluteUri);
-    $statusLabel.Text = $File
+    $statusLabel.Text = $Script:File
 }
 function UpdateView([string] $baseUri) {
     $html = (ConvertFrom-Markdown -InputObject $markdownTextBox.Text).Html
