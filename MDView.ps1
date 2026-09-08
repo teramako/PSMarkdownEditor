@@ -123,7 +123,7 @@ function WatchFile {
     }
     Write-Host ('Watching: Directory = {0}, Filter = {1}' -f $Script:fsWatcher.Path, $Script:fsWatcher.Filter)
 }
-enum ViewMode { SplitView = 1; Editor = 2; Browser = 3; }
+enum ViewMode { SplitView = 1; Editor = 2; Browser = 3; Preview = 4; }
 function SwitchViewMode([ViewMode] $Mode) {
     switch ($Mode) {
         'SplitView' {
@@ -134,6 +134,7 @@ function SwitchViewMode([ViewMode] $Mode) {
             $showOnlyEditorMenu.Checked = $false;
             $showOnlyBrowserMenu.Checked = $false;
             $previewMenu.Checked = $false
+            $Script:Preview = $false
         }
         'Editor' {
             if ($showOnlyEditorMenu.Checked) { return }
@@ -143,6 +144,7 @@ function SwitchViewMode([ViewMode] $Mode) {
             $showOnlyEditorMenu.Checked = $true;
             $showOnlyBrowserMenu.Checked = $false;
             $previewMenu.Checked = $false
+            $Script:Preview = $false
         }
         'Browser' {
             if ($showOnlyBrowserMenu.Checked) { return }
@@ -152,14 +154,30 @@ function SwitchViewMode([ViewMode] $Mode) {
             $showOnlyEditorMenu.Checked = $false;
             $showOnlyBrowserMenu.Checked = $true;
             $previewMenu.Checked = $false
+            $Script:Preview = $false
+        }
+        'Preview' {
+            if ([string]::IsNullOrEmpty($Script:File)) { return }
+            $splitContainer.Panel1Collapsed = $true;
+            $splitContainer.Panel2Collapsed = $false;
+            $splitViewMenu.Checked = $false;
+            $showOnlyEditorMenu.Checked = $false;
+            $showOnlyBrowserMenu.Checked = $false;
+            $previewMenu.Checked = $true
+            $Script:Preview = $true
         }
     }
-    if ($Preview -and [IO.File]::Exists($File)) {
+    if ($Script:Preview -and [IO.File]::Exists($Script:File)) {
         WatchFile
     } else {
-        if ($fsWatcher) {
-            $fsWatcher.Dispose()
-            $fsWatcher= $null
+        if ($Script:fsWatcher) {
+            $Script:fsWatcher.Dispose()
+            $Script:fsWatcher= $null
+        }
+        if ($splitContainer.Panel1Collapsed) {
+            $markdownTextBox.Remove_TextChanged($onTextChanged);
+        } else {
+            $markdownTextBox.Add_TextChanged($onTextChanged);
         }
     }
 }
@@ -228,6 +246,7 @@ $form.Add_Load({
 
                     if ($Script:Preview) {
                         SwitchViewMode 'Preview'
+                        $previewMenu.Enabled = $false
                     } else {
                         SwitchViewMode 'SplitView'
                     }
@@ -274,6 +293,7 @@ function OpenMarkdownFile([string] $markdownFile) {
     $markdownTextBox.Lines = [IO.File]::ReadLines($Script:File, [Text.Encoding]::UTF8);
     UpdateView ([Uri]::new($markdownFile).AbsoluteUri);
     $statusLabel.Text = $Script:File
+    $previewMenu.Enabled = $true
 }
 function UpdateView([string] $baseUri) {
     $html = (ConvertFrom-Markdown -InputObject $markdownTextBox.Text).Html
