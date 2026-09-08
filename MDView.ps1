@@ -3,9 +3,10 @@ using namespace System.Drawing;
 using namespace Microsoft.Web.WebView2.Core;
 using namespace Microsoft.Web.WebView2.WinForms;
 param(
-    [Parameter(Position = 0)]
+    [Parameter(ParameterSetName = 'Default', Position = 0)]
+    [Parameter(ParameterSetName = 'PreviewMode', Mandatory, Position = 0)]
     [string] $File,
-    [Parameter()]
+    [Parameter(ParameterSetName = 'PreviewMode', Mandatory)]
     [switch] $Preview
 )
 $ErrorActionPreference = 'Stop';
