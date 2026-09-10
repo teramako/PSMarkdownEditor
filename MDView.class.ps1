@@ -147,6 +147,7 @@ class MDView : Form {
             } catch {
                 [MessageBox]::Show(("{0}" -f $_), "Error")
             }
+            $this.WebView.Add_NavigationStarting($this.WebView_NavigationStarting)
         } else {
             [MessageBox]::Show(("Failed to Navigate WebView2: {0} {1}" -f $e.WebErrorStatus, $e.HttpStatusCode), "Error")
             $this.Dispose()
@@ -160,6 +161,21 @@ class MDView : Form {
             if ($fileInfo.Extension -eq ".md") {
                 $this.TryOpenMarkdownFile($fileInfo)
             }
+        }
+    }
+    [void] WebView_NavigationStarting($s, [CoreWebView2NavigationStartingEventArgs] $e) {
+        $uri = [uri]::new($e.Uri)
+        if ($uri.IsFile) {
+            $e.Cancel = $true
+            $fileInfo = [IO.FileInfo]::new($uri.LocalPath)
+            if ($fileInfo.Extension -eq '.md') {
+                $this.TryOpenMarkdownFile($fileInfo)
+            }
+            return
+        }
+        if ($uri.Scheme -in @('https', 'http')) {
+            $e.Cancel = $true
+            [System.Diagnostics.Process]::Start($uri.AbsoluteUri)
         }
     }
 
