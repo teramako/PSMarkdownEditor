@@ -133,7 +133,7 @@ class MDView : Form {
         if ($e.IsSuccess) {
             $mode = [ViewMode]::SplitView
             try {
-                if ($this.TryOpenMarkdownFile()) {
+                if ($this.TryOpenMarkdownFile($null)) {
                     if ($this.Preview) {
                         $mode = [ViewMode]::Preview
                     } else {
