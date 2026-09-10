@@ -224,8 +224,13 @@ class MDView : Form {
             $files = $e.Data.GetData([DataFormats]::FileDrop) -as [string[]] ?? @()
             foreach ($file in $files) {
                 switch -Regex ([IO.Path]::GetExtension($file)) {
-                    '\.md$' { OpenMarkdownFile $file; return }
-                    '\.(jpe?g|gif|png|webp|svg)$' { InsertImage $file }
+                    '\.md$' {
+                        $this.File = [IO.FileInfo]::new($file)
+                        $this.TryOpenMarkdownFile();
+                    }
+                    '\.(jpe?g|gif|png|webp|svg)$' {
+                        $this.InsertImage($file)
+                    }
                 }
             }
         }
@@ -329,5 +334,17 @@ class MDView : Form {
             $this.SplitContainer.ResumeLayout()
         }
         return $true
+    }
+    [void] InsertImage([string] $imageFile) {
+        $alt = [IO.Path]::GetFileNameWithoutExtension($imageFile)
+        $uri = [Uri]::new($imageFile)
+        $mdText = "![{0}]({1})`n" -f $alt, $uri.AbsoluteUri
+        $selectionStart = $this.MarkdownTextBox.SelectionStart
+        $this.MarkdownTextBox.Text =
+            $this.MarkdownTextBox.Text.Substring(0, $selectionStart) +
+            $mdText +
+            $this.MarkdownTextBox.Text.Substring($selectionStart + $this.MarkdownTextBox.SelectionLength);
+        $this.MarkdownTextBox.SelectionStart = $selectionStart + $mdText.Length;
+        $this.MarkdownTextBox.SelectionLength = 0;
     }
 }
