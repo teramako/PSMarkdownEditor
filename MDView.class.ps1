@@ -110,6 +110,8 @@ class MDView : Form {
         $this.MarkdownTextBox.Add_DragEnter($this.MarkdownTextBox_DragEnter)
         $this.MarkdownTextBox.Add_DragDrop($this.MarkdownTextBox_DragDrop)
 
+        $this.UpdateTimer.Add_Tick($this.UpdateTimer_Tick)
+
         # Initialize WebView2
         $opts = [CoreWebView2EnvironmentOptions]::new("--allow-file-access-from-files")
         $webViewEnv = [CoreWebView2Environment]::CreateAsync($null, "$PSScriptRoot\webview2_userdata", $opts).Result
@@ -233,7 +235,7 @@ class MDView : Form {
         if ($this.Preview -and $this.File) {
             $this.TryOpenMarkdownFile()
         } else {
-            $this.UpdateView()
+            $this.UpdateView($null)
         }
     }
 
