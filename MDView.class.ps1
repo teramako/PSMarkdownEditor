@@ -130,6 +130,7 @@ class MDView : Form {
         }
     }
     [void] WebView_NavigationCompleted($s, [CoreWebView2NavigationCompletedEventArgs] $e) {
+        $this.WebView.Remove_NavigationCompleted($this.WebView_NavigationCompleted)
         if ($e.IsSuccess) {
             $mode = [ViewMode]::SplitView
             try {
