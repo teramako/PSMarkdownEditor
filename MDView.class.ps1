@@ -123,6 +123,7 @@ class MDView : Form {
         if ($e.IsSuccess) {
             $pageUrl = [uri]::new((Join-Path -Path $PSScriptRoot -ChildPath MDView.html))
             $this.WebView.CoreWebView2.Navigate($pageUrl.AbsoluteUri)
+            $this.WebView.CoreWebView2.Add_NewWindowRequested($this.WebView_NewWindowRequested)
         } else {
             [MessageBox]::Show(("Failed to initialize WebView2: {0}" -f $e.InitializationException), "Error")
             $this.Dispose()
@@ -150,6 +151,16 @@ class MDView : Form {
             $this.Dispose()
         }
     }
+    [void] WebView_NewWindowRequested($s, [CoreWebView2NewWindowRequestedEventArgs] $e) {
+        $uri = [uri]::new($e.Uri)
+        if ($uri.IsFile) {
+            $e.Handled = $true
+            $fileInfo = [IO.FileInfo]::new($uri.LocalPath)
+            if ($fileInfo.Extension -eq ".md") {
+                $this.TryOpenMarkdownFile($fileInfo)
+            }
+        }
+    }
 
     [void] OpenMenu_Click($s, $e) {
         $dialog = New-Object OpenFileDialog -Property @{
@@ -158,8 +169,7 @@ class MDView : Form {
             InitialDirectory = [Environment]::GetFolderPath([Environment+SpecialFolder]::MyDocuments)
         }
         if ($dialog.ShowDialog($this.Form) -eq [DialogResult]::OK) {
-            $this.File = [IO.FileInfo]::new($dialog.FileName)
-            $this.TryOpenMarkdownFile()
+            $this.TryOpenMarkdownFile([IO.FileInfo]::new($dialog.FileName))
         }
     }
     [void] SaveMenu_Click($s, $e) {
@@ -225,8 +235,7 @@ class MDView : Form {
             foreach ($file in $files) {
                 switch -Regex ([IO.Path]::GetExtension($file)) {
                     '\.md$' {
-                        $this.File = [IO.FileInfo]::new($file)
-                        $this.TryOpenMarkdownFile();
+                        $this.TryOpenMarkdownFile([IO.FileInfo]::new($file));
                     }
                     '\.(jpe?g|gif|png|webp|svg)$' {
                         $this.InsertImage($file)
@@ -238,7 +247,7 @@ class MDView : Form {
     [void] UpdateTimer_Tick($s, $e) {
         $this.UpdateTimer.Stop();
         if ($this.Preview -and $this.File) {
-            $this.TryOpenMarkdownFile()
+            $this.TryOpenMarkdownFile($null)
         } else {
             $this.UpdateView($null)
         }
@@ -264,13 +273,30 @@ class MDView : Form {
             $this.ViewModeMenus.PreviewMode.Enabled = $false
         }
     }
-    [bool] TryOpenMarkdownFile() {
-        if ($null -eq $this.File -or -not $this.File.Exists) { return $false }
-        $filePath = $this.File.FullName
-        $this.MarkdownTextBox.Lines = [IO.File]::ReadLines($this.File, [Text.Encoding]::UTF8);
+    [bool] TryOpenMarkdownFile([IO.FileInfo] $aFile) {
+        $isFileChanged = $true
+        if ($null -eq $aFile) {
+            $targetFile = $this.File
+            $isFileChanged = $false
+        } elseif ($aFile -eq $this.File) {
+            $targetFile = $aFile;
+            $isFileChanged = $false
+        } else {
+            $targetFile = $aFile
+        }
+        if ($null -eq $targetFile -or -not $targetFile.Exists) { return $false }
+        $filePath = $targetFile.FullName
+        $this.MarkdownTextBox.Lines = [IO.File]::ReadLines($targetFile, [Text.Encoding]::UTF8);
         $this.UpdateView([Uri]::new($filePath).AbsoluteUri);
-        $this.UpdateTitle();
-        $this.ViewModeMenus.PreviewMode.Enabled = $true
+        $this.File = $targetFile
+        if ($isFileChanged) {
+            $this.UpdateTitle();
+            $this.ViewModeMenus.PreviewMode.Enabled = $true
+            if ($this.Preview) {
+                $this.StopWatchingFile()
+                $this.StartWatchingFile()
+            }
+        }
         return $true
     }
     [void] UpdateView([string] $baseUri) {
