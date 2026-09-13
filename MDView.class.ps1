@@ -315,7 +315,6 @@ class MDView : Form {
         $this.File = $targetFile
         if ($isFileChanged) {
             $this.UpdateTitle();
-            $this.ViewModeMenus.PreviewMode.Enabled = $true
             if ($this.Preview) {
                 $this.StopWatchingFile()
                 $this.StartWatchingFile()
@@ -336,11 +335,13 @@ class MDView : Form {
     [void] UpdateTitle() {
         if ($null -ne $this.File -and $this.File.Exists) {
             $title = [IO.Path]::GetFileNameWithoutExtension($this.File.FullName)
-            $this.Text = 'MDView - {0}' -f $this.File.FullName
-            $this.StatusTitleLabel.Text = 'Title: {0}' -f $title
+            $this.Text = 'MDView - {0}' -f $title
+            $this.StatusTitleLabel.Text = 'Title: {0}' -f $this.File.FullName
+            $this.ViewModeMenus.PreviewMode.Enabled = $true
         } else {
             $this.Text = 'MDView'
             $this.StatusTitleLabel.Text = ''
+            $this.ViewModeMenus.PreviewMode.Enabled = $false
         }
     }
 
