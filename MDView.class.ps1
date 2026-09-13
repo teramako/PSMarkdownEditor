@@ -36,6 +36,7 @@ class MDView : Form {
 
         # ---- File ----
         $fileToolStripMenu = [ToolStripMenuItem]::new('&File', $null, @(
+            [ToolStripMenuItem]::new('&New', $null, $this.NewMenu_Click, [Keys]::Control -bor [Keys]::N)
             [ToolStripMenuItem]::new('&Open', $null, $this.OpenMenu_Click, [Keys]::Control -bor [Keys]::O)
             [ToolStripMenuItem]::new('&Save', $null, $this.SaveMenu_Click, [Keys]::Control -bor [Keys]::S)
             [ToolStripSeparator]::new()
@@ -179,6 +180,11 @@ class MDView : Form {
             $e.Cancel = $true
             [System.Diagnostics.Process]::Start($uri.AbsoluteUri)
         }
+    }
+
+    [void] NewMenu_Click($s, $e) {
+        $newWindow = [MDView]::new($null, $false)
+        $newWindow.Show();
     }
 
     [void] OpenMenu_Click($s, $e) {
