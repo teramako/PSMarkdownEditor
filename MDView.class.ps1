@@ -54,6 +54,8 @@ class MDView : Form {
                             $null, $this.ViewModeMenu_Click, ([Keys]::Control -bor [Keys]::D4)) -Property @{ Name = 'Perview' }
         }
         $viewToolStripMenu = [ToolStripMenuItem]::new('&View', $null, @(
+            [ToolStripMenuItem]::new('&TopMost', $null, $this.TopMostMenu_Click, ([Keys]::Control -bor [Keys]::T))
+            [ToolStripSeparator]::new()
             $this.ViewModeMenus.Values
             [ToolStripSeparator]::new()
             [ToolStripMenuItem]::new('&Font', $null, $this.FontMenu_Click)
@@ -208,6 +210,11 @@ class MDView : Form {
     }
     [void] QuitMenu_Click($s, $e) {
         $this.Close()
+    }
+
+    [void] TopMostMenu_Click($s, $e) {
+        $this.TopMost = -not $this.TopMost;
+        $s.Checked = $this.TopMost;
     }
 
     [void] FontMenu_Click($s, $e) {
