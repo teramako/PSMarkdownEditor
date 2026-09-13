@@ -6,7 +6,15 @@
 <link rel="stylesheet" href="github-markdown.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.12.0/styles/default.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.12.0/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlightjs-copy/dist/highlightjs-copy.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlightjs-copy/dist/highlightjs-copy.min.css">
 <script>
+hljs.addPlugin(new CopyButtonPlugin({
+    autohide: false, // Show button always (true = only on hover)
+    callback: (text, el) => {
+        console.log("Copied text:", text);
+    }
+}));
 function updateContent(html) {
     document.getElementById('content').innerHTML = html;
     hljs.highlightAll();
