@@ -3,6 +3,23 @@ using namespace System.Drawing;
 using namespace Microsoft.Web.WebView2.Core;
 using namespace Microsoft.Web.WebView2.WinForms;
 
+class MDViewContext : ApplicationContext {
+    MDViewContext([string] $aFile, [bool] $aPreview) {
+        [MDViewContext]::OpenNewWindow($aFile, $aPreview);
+    }
+    static [void] OnFormClosed($s, [FormClosedEventArgs] $e) {
+        if ([Application]::OpenForms.Count -eq 0) {
+            [Application]::ExitThread();
+        }
+    }
+    static [Form] OpenNewWindow([string] $aFile, [bool] $aPreview) {
+        $form = [MDView]::new($aFile, $aPreview)
+        $form.Add_FormClosed([MDViewContext]::OnFormClosed);
+        $form.Show();
+        return $form;
+    }
+}
+
 enum ViewMode { SplitView = 1; Editor = 2; Browser = 3; Preview = 4; }
 
 class MDView : Form {
@@ -183,8 +200,7 @@ class MDView : Form {
     }
 
     [void] NewMenu_Click($s, $e) {
-        $newWindow = [MDView]::new($null, $false)
-        $newWindow.Show();
+        [MDViewContext]::OpenNewWindow($null, $false)
     }
 
     [void] OpenMenu_Click($s, $e) {

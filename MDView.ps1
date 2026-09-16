@@ -1,3 +1,4 @@
+using namespace System.Windows.Forms;
 param(
     [Parameter(ParameterSetName = 'Default', Position = 0)]
     [Parameter(ParameterSetName = 'PreviewMode', Mandatory, Position = 0)]
@@ -20,5 +21,5 @@ Add-Type -Path $PSScriptRoot\libs\Microsoft.Web.WebView2.WinForms.dll
     '--------------------'
 ) | Write-Host
 
-$mdView = [MDView]::new($File, $Preview)
-[Application]::Run($mdView)
+$appContext = [MDViewContext]::new($File, $Preview)
+[Application]::Run($appContext)
