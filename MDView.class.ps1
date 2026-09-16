@@ -13,7 +13,7 @@ class MDView : Form {
     [SplitContainer] $SplitContainer
     [TextBox] $MarkdownTextBox
     [WebView2] $WebView
-    [ToolStripStatusLabel] $StatusTitleLabel
+    [ToolStripStatusLabel] $StatusFileLabel
     [ToolStripStatusLabel] $StatusModeLabel
     [ordered] $ViewModeMenus
     MDView([string] $aFile, [bool] $aPreview) {
@@ -95,9 +95,9 @@ class MDView : Form {
         # StatusStrip
         # --------------------------------------------------
         $statusStrip = [StatusStrip]::new();
-        $this.StatusTitleLabel = [ToolStripStatusLabel]::new()
+        $this.StatusFileLabel = [ToolStripStatusLabel]::new()
         $this.StatusModeLabel = [ToolStripStatusLabel]::new('Mode:')
-        $statusStrip.Items.AddRange(@($this.StatusModeLabel, $this.StatusTitleLabel))
+        $statusStrip.Items.AddRange(@($this.StatusModeLabel, $this.StatusFileLabel))
 
         $this.Controls.AddRange(@($mainPanel, $menuStrip, $statusStrip));
         $this.SplitContainer.ResumeLayout($false)
@@ -342,11 +342,11 @@ class MDView : Form {
         if ($null -ne $this.File -and $this.File.Exists) {
             $title = [IO.Path]::GetFileNameWithoutExtension($this.File.FullName)
             $this.Text = 'MDView - {0}' -f $title
-            $this.StatusTitleLabel.Text = 'Title: {0}' -f $this.File.FullName
+            $this.StatusFileLabel.Text = $this.File.FullName
             $this.ViewModeMenus.PreviewMode.Enabled = $true
         } else {
             $this.Text = 'MDView'
-            $this.StatusTitleLabel.Text = ''
+            $this.StatusFileLabel.Text = ''
             $this.ViewModeMenus.PreviewMode.Enabled = $false
         }
     }
