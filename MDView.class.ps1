@@ -56,6 +56,7 @@ class MDView : Form {
             [ToolStripMenuItem]::new('&New', $null, $this.NewMenu_Click, [Keys]::Control -bor [Keys]::N)
             [ToolStripMenuItem]::new('&Open', $null, $this.OpenMenu_Click, [Keys]::Control -bor [Keys]::O)
             [ToolStripMenuItem]::new('&Save', $null, $this.SaveMenu_Click, [Keys]::Control -bor [Keys]::S)
+            [ToolStripMenuItem]::new('Save As', $null, $this.SaveAsMenu_Click, [Keys]::Control -bor [Keys]::Alt -bor [Keys]::S)
             [ToolStripSeparator]::new()
             [ToolStripMenuItem]::new('&Quit', $null, $this.QuitMenu_Click, [Keys]::Control -bor [Keys]::Q)
         ))
@@ -219,9 +220,15 @@ class MDView : Form {
             return;
         }
 
+        $this.SaveAsMenu_Click($s, $e);
+    }
+    [void] SaveAsMenu_Click($s, $e) {
         $saveDialog = New-Object SaveFileDialog -Property @{
             Filter = "Markdown files (*.md)|*.md|All files (*.*)|*.*";
             InitialDirectory = [Environment]::GetFolderPath([Environment+SpecialFolder]::MyDocuments)
+        }
+        if ($this.File.Exists) {
+            $saveDialog.FileName = $this.File.Name;
         }
         if ($saveDialog.ShowDialog($this) -eq [DialogResult]::OK) {
             $filePath = $saveDialog.FileName
